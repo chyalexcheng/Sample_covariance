@@ -72,13 +72,56 @@ for j = 1:nx
     end
 end
 
+% Isotropic sample correlation
+n = max(ny,nx);
+rho = zeros(n,1);
+for j = 1:n
+    iter_j = j-1;
+    prefactor = 1./(sigma2_K_log*(ny*(nx-iter_j )+nx*(ny-iter_j )-1));
+    for k = 1:nx
+        for i = 1:ny-iter_j 
+            l = i+iter_j ;
+            X_ik = K_log(i,k)-mu_K_log;
+            X_lk = K_log(l,k)-mu_K_log;
+            rho(j) = rho(j)+prefactor*X_ik*X_lk;
+        end
+    end
+    for k = 1:ny
+        for i = 1:nx-iter_j 
+            l = i+iter_j ;
+            X_ik = K_log(k,i)-mu_K_log;
+            X_lk = K_log(k,l)-mu_K_log;
+            rho(j) = rho(j)+prefactor*X_ik*X_lk;
+        end
+    end
+end
+
 % Plot the sample correlation versus separation distance
 figure();
 hold on;
 plot(x-x(1),rho_x);
 plot(y-y(1),rho_y);
-legend('X direction','Y direction');
+plot(y-y(1),rho);
+legend('X direction','Y direction','Isotropic');
 
 % Set the axis labels
 xlabel('\tau');
 ylabel('\rho(\tau)');
+
+%% Define the exponential function
+x = transpose(x-x(1));
+exp_func = fittype('exp(-x/b)','independent','x','dependent','y');
+
+% Fit the exponential function to the data
+exp_fit = fit(x,rho,exp_func);
+
+% Plot the data and the fits
+figure();
+plot(x,rho,'b');
+hold on;
+plot(exp_fit,'g');
+legend('Data (isotropic)','Exponential Fit');
+xlabel('\tau');
+ylabel('\rho(\tau)');
+saveas(gcf,'correlation_fitted.png')
+fprintf('The estimated correlation length is %.3f m\n', exp_fit.b)
